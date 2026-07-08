@@ -2,6 +2,8 @@
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const canvas = document.getElementById("field");
   const ctx = canvas.getContext("2d", { alpha: true });
+  const titleLonging = document.querySelector(".hero-title-text-longing");
+  const titleTeam = document.querySelector(".hero-title-text-team");
   const state = {
     width: 0,
     height: 0,
@@ -129,6 +131,18 @@
 
   const rows = Array.from(document.querySelectorAll(".member-row"));
 
+  function startTitleRotation() {
+    if (reducedMotion || !titleLonging || !titleTeam) return;
+
+    let showTeam = false;
+    window.setInterval(() => {
+      showTeam = !showTeam;
+      document.body.classList.toggle("is-title-alt", showTeam);
+      titleLonging.setAttribute("aria-hidden", showTeam ? "true" : "false");
+      titleTeam.setAttribute("aria-hidden", showTeam ? "false" : "true");
+    }, 5200);
+  }
+
   if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
@@ -155,4 +169,5 @@
   window.addEventListener("resize", resize, { passive: true });
   resize();
   start();
+  window.setTimeout(startTitleRotation, 1800);
 })();

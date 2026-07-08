@@ -118,7 +118,7 @@ body::after {
 .cine-layer {
   position: fixed;
   inset: 0;
-  z-index: 2;
+  z-index: 1;
   pointer-events: none;
 }
 
@@ -141,7 +141,7 @@ body::after {
 
 .site-main {
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .rule-double {
@@ -211,6 +211,9 @@ body::after {
 }
 
 .hero-title {
+  display: grid;
+  place-items: center;
+  min-height: 2em;
   color: var(--ink);
   font-family: var(--font-serif);
   font-size: clamp(2.4rem, 7.4vw, 7.1rem);
@@ -221,6 +224,30 @@ body::after {
     0 0 28px rgba(185, 188, 224, 0.12),
     0 0 1px rgba(244, 236, 200, 0.55);
   animation-delay: 240ms;
+}
+
+.hero-title-text {
+  grid-area: 1 / 1;
+  display: block;
+  transition: opacity 900ms var(--ease-settle), filter 900ms var(--ease-settle), transform 900ms var(--ease-settle);
+}
+
+.hero-title-text-team {
+  opacity: 0;
+  filter: blur(10px);
+  transform: translate3d(0, 0.12em, 0);
+}
+
+body.is-title-alt .hero-title-text-longing {
+  opacity: 0;
+  filter: blur(10px);
+  transform: translate3d(0, -0.12em, 0);
+}
+
+body.is-title-alt .hero-title-text-team {
+  opacity: 1;
+  filter: blur(0);
+  transform: translate3d(0, 0, 0);
 }
 
 .scroll-plane {
@@ -355,20 +382,22 @@ body::after {
 
 .site-foot {
   position: relative;
-  z-index: 1;
+  z-index: 4;
   display: grid;
   gap: 8px;
-  padding: 22px clamp(24px, 6vw, 72px) 28px;
+  padding: 22px clamp(24px, 6vw, 72px) max(46px, calc(28px + env(safe-area-inset-bottom)));
   border-top: 1px solid var(--line);
   background: #050508;
   color: var(--ink-dim);
   font-family: var(--font-mono);
-  font-size: clamp(0.62rem, 1vw, 0.76rem);
-  letter-spacing: 0.14em;
+  font-size: clamp(0.62rem, 0.92vw, 0.76rem);
+  letter-spacing: 0.1em;
+  line-height: 1.7;
 }
 
 .site-foot p {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 @keyframes title-rise {
@@ -481,6 +510,7 @@ body::after {
 
   .hero-title {
     letter-spacing: 0.035em;
+    min-height: 2.14em;
   }
 
   .member-row {
@@ -502,7 +532,9 @@ body::after {
 
   .site-foot {
     padding-inline: 24px;
-    line-height: 1.7;
+    padding-bottom: max(58px, calc(34px + env(safe-area-inset-bottom)));
+    font-size: 0.64rem;
+    letter-spacing: 0.08em;
   }
 }
 
@@ -521,10 +553,15 @@ body::after {
 
   .hero-prelude,
   .hero-title,
+  .hero-title-text,
   .scroll-plane {
     opacity: 1;
     filter: none;
     transform: none;
+  }
+
+  .hero-title-text-team {
+    display: none;
   }
 
   .member-row::before,
