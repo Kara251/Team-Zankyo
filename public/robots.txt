@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://zankyo.kara251.com/sitemap.xml

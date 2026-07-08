@@ -1,0 +1,15 @@
+{
+  "name": "team-zankyo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "check": "node --check public/site.js",
+    "dev": "python3 -m http.server 4175 -d public",
+    "deploy": "WRANGLER_LOG_PATH=.wrangler/logs npx wrangler@4 pages deploy public --project-name team-zankyo --branch main",
+    "cf:project:create": "npx wrangler@4 pages project create team-zankyo --production-branch main"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
