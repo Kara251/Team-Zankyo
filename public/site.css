@@ -15,6 +15,7 @@
   --shell: min(100% - 48px, 1080px);
   --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-glide: cubic-bezier(0.27, 0.8, 0.22, 1);
+  --ease-quick: cubic-bezier(0.3, 0.9, 0.4, 1);
 }
 
 *,
@@ -169,11 +170,12 @@ body::after {
   transform: translate3d(0, 0, 0);
 }
 
+/* Motion contract: one ambient loop per viewport — the turning halo below.
+   The breathing outer ring is now static. */
 .hero::before {
   width: min(76vw, 820px);
   aspect-ratio: 1;
-  opacity: 0.58;
-  animation: halo-breathe 9s var(--ease-glide) infinite alternate;
+  opacity: 0.5;
 }
 
 .hero::after {
@@ -199,7 +201,7 @@ body::after {
   opacity: 0;
   filter: blur(8px);
   transform: translate3d(0, 18px, 0);
-  animation: title-rise 1100ms var(--ease-settle) forwards;
+  animation: title-rise 640ms var(--ease-settle) forwards;
 }
 
 .hero-prelude {
@@ -223,13 +225,13 @@ body::after {
   text-shadow:
     0 0 28px rgba(185, 188, 224, 0.12),
     0 0 1px rgba(244, 236, 200, 0.55);
-  animation-delay: 240ms;
+  animation-delay: 120ms;
 }
 
 .hero-title-text {
   grid-area: 1 / 1;
   display: block;
-  transition: opacity 900ms var(--ease-settle), filter 900ms var(--ease-settle), transform 900ms var(--ease-settle);
+  transition: opacity 700ms var(--ease-settle), filter 700ms var(--ease-settle), transform 700ms var(--ease-settle);
 }
 
 .hero-title-text-team {
@@ -260,7 +262,7 @@ body.is-title-alt .hero-title-text-team {
   width: 1px;
   transform: translateX(-50%);
   opacity: 0;
-  animation: plane-enter 900ms var(--ease-settle) 1280ms forwards;
+  animation: plane-enter 640ms var(--ease-settle) 500ms forwards;
 }
 
 .scroll-plane span {
@@ -328,7 +330,8 @@ body.is-title-alt .hero-title-text-team {
     linear-gradient(90deg, rgba(139, 143, 199, 0.2), transparent 42%),
     rgba(255, 255, 255, 0.012);
   transform: translateX(-100%);
-  transition: transform 900ms var(--ease-glide);
+  transition: transform 480ms var(--ease-glide);
+  transition-delay: var(--reveal-delay, 0ms);
 }
 
 .member-row::after {
@@ -344,7 +347,7 @@ body.is-title-alt .hero-title-text-team {
 }
 
 .member-row.is-visible::after {
-  animation: scan-member 1400ms var(--ease-glide) both;
+  animation: scan-member 700ms var(--ease-glide) var(--reveal-delay, 0ms) both;
 }
 
 .member-row:hover {
@@ -369,6 +372,20 @@ body.is-title-alt .hero-title-text-team {
   font-size: clamp(1.5rem, 3.4vw, 3.4rem);
   line-height: 1.12;
   letter-spacing: 0.05em;
+}
+
+/* Fast feedback layer: instant response on hover, slow border as second layer */
+.member-name,
+.member-role {
+  transition: transform 160ms var(--ease-quick), color 160ms var(--ease-quick);
+}
+
+.member-row:hover .member-name {
+  transform: translateX(6px);
+}
+
+.member-row:hover .member-role {
+  color: #fff;
 }
 
 .member-row-analyst {
@@ -417,18 +434,6 @@ body.is-title-alt .hero-title-text-team {
     opacity: 1;
     filter: blur(0);
     transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes halo-breathe {
-  from {
-    opacity: 0.32;
-    transform: scale(0.96);
-  }
-
-  to {
-    opacity: 0.64;
-    transform: scale(1.04);
   }
 }
 

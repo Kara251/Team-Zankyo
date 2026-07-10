@@ -145,10 +145,14 @@
 
   if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver((entries) => {
+      let batchIndex = 0;
+
       for (const entry of entries) {
         if (entry.isIntersecting) {
+          entry.target.style.setProperty("--reveal-delay", `${batchIndex * 60}ms`);
           entry.target.classList.add("is-visible");
           observer.unobserve(entry.target);
+          batchIndex += 1;
         }
       }
     }, { threshold: 0.28 });
