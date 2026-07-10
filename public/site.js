@@ -149,7 +149,7 @@
 
       for (const entry of entries) {
         if (entry.isIntersecting) {
-          entry.target.style.setProperty("--reveal-delay", `${batchIndex * 60}ms`);
+          entry.target.style.setProperty("--reveal-delay", `${batchIndex * 120}ms`);
           entry.target.classList.add("is-visible");
           observer.unobserve(entry.target);
           batchIndex += 1;

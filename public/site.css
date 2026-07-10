@@ -170,8 +170,7 @@ body::after {
   transform: translate3d(0, 0, 0);
 }
 
-/* Motion contract: one ambient loop per viewport — the turning halo below.
-   The breathing outer ring is now static. */
+/* The outer ring stays static; the turning halo and canvas carry the ambience. */
 .hero::before {
   width: min(76vw, 820px);
   aspect-ratio: 1;
@@ -201,7 +200,7 @@ body::after {
   opacity: 0;
   filter: blur(8px);
   transform: translate3d(0, 18px, 0);
-  animation: title-rise 640ms var(--ease-settle) forwards;
+  animation: title-rise 1000ms var(--ease-settle) forwards;
 }
 
 .hero-prelude {
@@ -225,13 +224,13 @@ body::after {
   text-shadow:
     0 0 28px rgba(185, 188, 224, 0.12),
     0 0 1px rgba(244, 236, 200, 0.55);
-  animation-delay: 120ms;
+  animation-delay: 220ms;
 }
 
 .hero-title-text {
   grid-area: 1 / 1;
   display: block;
-  transition: opacity 700ms var(--ease-settle), filter 700ms var(--ease-settle), transform 700ms var(--ease-settle);
+  transition: opacity 880ms var(--ease-settle), filter 880ms var(--ease-settle), transform 880ms var(--ease-settle);
 }
 
 .hero-title-text-team {
@@ -262,7 +261,7 @@ body.is-title-alt .hero-title-text-team {
   width: 1px;
   transform: translateX(-50%);
   opacity: 0;
-  animation: plane-enter 640ms var(--ease-settle) 500ms forwards;
+  animation: plane-enter 860ms var(--ease-settle) 1180ms forwards;
 }
 
 .scroll-plane span {
@@ -330,7 +329,7 @@ body.is-title-alt .hero-title-text-team {
     linear-gradient(90deg, rgba(139, 143, 199, 0.2), transparent 42%),
     rgba(255, 255, 255, 0.012);
   transform: translateX(-100%);
-  transition: transform 480ms var(--ease-glide);
+  transition: transform 860ms var(--ease-glide);
   transition-delay: var(--reveal-delay, 0ms);
 }
 
@@ -347,7 +346,7 @@ body.is-title-alt .hero-title-text-team {
 }
 
 .member-row.is-visible::after {
-  animation: scan-member 700ms var(--ease-glide) var(--reveal-delay, 0ms) both;
+  animation: scan-member 1280ms var(--ease-glide) var(--reveal-delay, 0ms) both;
 }
 
 .member-row:hover {
@@ -374,10 +373,10 @@ body.is-title-alt .hero-title-text-team {
   letter-spacing: 0.05em;
 }
 
-/* Fast feedback layer: instant response on hover, slow border as second layer */
+/* Responsive hover feedback sits beneath the slower border transition. */
 .member-name,
 .member-role {
-  transition: transform 160ms var(--ease-quick), color 160ms var(--ease-quick);
+  transition: transform 200ms var(--ease-quick), color 200ms var(--ease-quick);
 }
 
 .member-row:hover .member-name {
