@@ -200,7 +200,7 @@ body::after {
   opacity: 0;
   filter: blur(8px);
   transform: translate3d(0, 18px, 0);
-  animation: title-rise 1000ms var(--ease-settle) forwards;
+  animation: title-rise 1100ms var(--ease-settle) forwards;
 }
 
 .hero-prelude {
@@ -224,13 +224,13 @@ body::after {
   text-shadow:
     0 0 28px rgba(185, 188, 224, 0.12),
     0 0 1px rgba(244, 236, 200, 0.55);
-  animation-delay: 220ms;
+  animation-delay: 240ms;
 }
 
 .hero-title-text {
   grid-area: 1 / 1;
   display: block;
-  transition: opacity 880ms var(--ease-settle), filter 880ms var(--ease-settle), transform 880ms var(--ease-settle);
+  transition: opacity 900ms var(--ease-settle), filter 900ms var(--ease-settle), transform 900ms var(--ease-settle);
 }
 
 .hero-title-text-team {
@@ -261,7 +261,7 @@ body.is-title-alt .hero-title-text-team {
   width: 1px;
   transform: translateX(-50%);
   opacity: 0;
-  animation: plane-enter 860ms var(--ease-settle) 1180ms forwards;
+  animation: plane-enter 900ms var(--ease-settle) 1280ms forwards;
 }
 
 .scroll-plane span {
@@ -329,7 +329,7 @@ body.is-title-alt .hero-title-text-team {
     linear-gradient(90deg, rgba(139, 143, 199, 0.2), transparent 42%),
     rgba(255, 255, 255, 0.012);
   transform: translateX(-100%);
-  transition: transform 860ms var(--ease-glide);
+  transition: transform 900ms var(--ease-glide);
   transition-delay: var(--reveal-delay, 0ms);
 }
 
@@ -346,7 +346,7 @@ body.is-title-alt .hero-title-text-team {
 }
 
 .member-row.is-visible::after {
-  animation: scan-member 1280ms var(--ease-glide) var(--reveal-delay, 0ms) both;
+  animation: scan-member 1400ms var(--ease-glide) var(--reveal-delay, 0ms) both;
 }
 
 .member-row:hover {
