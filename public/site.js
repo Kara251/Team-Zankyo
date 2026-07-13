@@ -1,177 +1,300 @@
 (() => {
+  "use strict";
+
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.documentElement.classList.remove("no-js");
+
+  const stage = document.getElementById("stage");
+  const markCore = document.getElementById("mark-core");
+  const deck = document.getElementById("deck");
+  const panel = document.getElementById("panel");
+  const reveal = document.getElementById("reveal");
+  const revealIndex = document.getElementById("reveal-index");
+  const revealName = document.getElementById("reveal-name");
+  const cards = Array.from(document.querySelectorAll(".card"));
+  const cats = Array.from(document.querySelectorAll(".cat"));
+
+  const MYGO = ["--m1", "--m2", "--m3", "--m4", "--m5", "--m6"];
+
+  /* ---------- 开场动画 ---------- */
+  // 逐字拆分，供信号干扰时随机泼色
+  const letters = [];
+  if (markCore) {
+    const text = markCore.textContent;
+    markCore.textContent = "";
+    for (const ch of text) {
+      const span = document.createElement("span");
+      span.className = "lt";
+      span.textContent = ch;
+      markCore.appendChild(span);
+      letters.push(span);
+    }
+  }
+
+  let splashTimer = 0;
+
+  function splashOnce() {
+    for (const lt of letters) {
+      if (Math.random() < 0.55) {
+        lt.style.color = `var(${MYGO[(Math.random() * MYGO.length) | 0]})`;
+        lt.style.transform = `translateY(${(Math.random() - 0.5) * 6}px)`;
+      } else {
+        lt.style.color = "";
+        lt.style.transform = "";
+      }
+    }
+  }
+
+  function clearSplash() {
+    window.clearInterval(splashTimer);
+    for (const lt of letters) {
+      lt.style.color = "";
+      lt.style.transform = "";
+    }
+  }
+
+  function lit() {
+    document.body.classList.add("is-lit");
+  }
+
+  function runIntro() {
+    if (reducedMotion || !stage) {
+      if (stage) stage.dataset.phase = "ready";
+      lit();
+      return;
+    }
+
+    const timeline = [
+      [700, "glitch"],   // 淡入结束 → 进入干扰
+      [2200, "complete"], // 干扰约 1.5s → 补全文本
+      [3150, "settle"],   // 缩小上移落位
+      [4150, "ready"]     // 交互就绪
+    ];
+
+    for (const [at, phase] of timeline) {
+      window.setTimeout(() => {
+        stage.dataset.phase = phase;
+        if (phase === "glitch") {
+          splashTimer = window.setInterval(splashOnce, 82);
+        } else if (phase === "complete") {
+          clearSplash();
+        } else if (phase === "settle") {
+          lit();
+        }
+      }, at);
+    }
+  }
+
+  /* ---------- 卡片选择 + 信封揭示 ---------- */
+  let current = null;
+
+  function select(cat, card) {
+    if (current === cat) return;
+    current = cat;
+
+    for (const c of cards) {
+      c.setAttribute("aria-pressed", c === card ? "true" : "false");
+    }
+
+    for (const el of cats) {
+      el.hidden = el.dataset.cat !== cat;
+    }
+
+    if (revealIndex && card) {
+      const idx = card.querySelector(".card-index");
+      const name = card.querySelector(".card-name");
+      revealIndex.textContent = idx ? idx.textContent : "";
+      revealName.textContent = name ? name.textContent : "";
+    }
+
+    stage.classList.add("has-selection");
+    panel.classList.add("is-open");
+    reveal.setAttribute("aria-hidden", "false");
+
+    // 重启抽卡动画
+    if (!reducedMotion) {
+      reveal.classList.remove("is-open");
+      void reveal.offsetWidth;
+      reveal.classList.add("is-open");
+    } else {
+      reveal.classList.add("is-open");
+    }
+
+    revealRows(cat);
+  }
+
+  let dragMoved = false;
+
+  for (const card of cards) {
+    card.addEventListener("click", (e) => {
+      // 键盘激活（Enter/Space）detail 为 0，始终选中
+      if (e.detail === 0) {
+        select(card.dataset.cat, card);
+        return;
+      }
+      if (dragMoved) return; // 鼠标拖动误触保护
+      select(card.dataset.cat, card);
+    });
+  }
+
+  /* ---------- 卡组拖拽（仅鼠标/触控笔；触屏交给原生横滑） ---------- */
+  let isDown = false;
+  let startX = 0;
+  let startScroll = 0;
+
+  deck.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "touch") return;
+    isDown = true;
+    dragMoved = false;
+    startX = e.clientX;
+    startScroll = deck.scrollLeft;
+  });
+
+  deck.addEventListener("pointermove", (e) => {
+    if (!isDown) return;
+    const dx = e.clientX - startX;
+    if (Math.abs(dx) > 6) {
+      dragMoved = true;
+      deck.classList.add("is-grabbing");
+    }
+    if (dragMoved) deck.scrollLeft = startScroll - dx;
+  });
+
+  function endDrag() {
+    isDown = false;
+    deck.classList.remove("is-grabbing");
+  }
+
+  deck.addEventListener("pointerup", endDrag);
+  deck.addEventListener("pointercancel", endDrag);
+  deck.addEventListener("pointerleave", endDrag);
+
+  // 载入/改尺寸后，把卡组滚到最右，让 CS2（01）优先出现（从右到左）
+  function alignDeck() {
+    deck.scrollLeft = deck.scrollWidth - deck.clientWidth;
+  }
+
+  /* ---------- 成员行渐显 ---------- */
+  let rowObserver = null;
+  if ("IntersectionObserver" in window) {
+    rowObserver = new IntersectionObserver((entries) => {
+      let batch = 0;
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.style.setProperty("--reveal-delay", `${batch * 110}ms`);
+          entry.target.classList.add("is-visible");
+          rowObserver.unobserve(entry.target);
+          batch += 1;
+        }
+      }
+    }, { threshold: 0.25 });
+  }
+
+  function revealRows(cat) {
+    const host = cats.find((el) => el.dataset.cat === cat);
+    if (!host) return;
+    const rows = Array.from(host.querySelectorAll(".member-row"));
+    if (rowObserver) {
+      rows.forEach((row) => rowObserver.observe(row));
+    } else {
+      rows.forEach((row) => row.classList.add("is-visible"));
+    }
+  }
+
+  /* ---------- 环境粒子场 ---------- */
   const canvas = document.getElementById("field");
   const ctx = canvas.getContext("2d", { alpha: true });
-  const titleLonging = document.querySelector(".hero-title-text-longing");
-  const titleTeam = document.querySelector(".hero-title-text-team");
-  const state = {
-    width: 0,
-    height: 0,
-    dpr: 1,
-    particles: [],
-    raf: 0,
-    visible: true
-  };
-
-  const colors = [
+  const fieldColors = [
     [238, 240, 255],
     [185, 188, 224],
     [139, 143, 199],
     [244, 236, 200]
   ];
+  const field = { width: 0, height: 0, dpr: 1, particles: [], raf: 0, visible: true };
 
   function resize() {
-    state.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    state.width = Math.max(1, window.innerWidth);
-    state.height = Math.max(1, window.innerHeight);
-    canvas.width = Math.floor(state.width * state.dpr);
-    canvas.height = Math.floor(state.height * state.dpr);
-    canvas.style.width = `${state.width}px`;
-    canvas.style.height = `${state.height}px`;
-    ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
-    seedParticles();
-    draw(0);
+    field.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    field.width = Math.max(1, window.innerWidth);
+    field.height = Math.max(1, window.innerHeight);
+    canvas.width = Math.floor(field.width * field.dpr);
+    canvas.height = Math.floor(field.height * field.dpr);
+    canvas.style.width = `${field.width}px`;
+    canvas.style.height = `${field.height}px`;
+    ctx.setTransform(field.dpr, 0, 0, field.dpr, 0, 0);
+    seed();
+    drawField(0);
   }
 
-  function seedParticles() {
-    const count = state.width < 760 ? 34 : 58;
-    state.particles = Array.from({ length: count }, (_, index) => {
-      const color = colors[index % colors.length];
-
-      return {
-        x: Math.random() * state.width,
-        y: Math.random() * state.height,
-        r: 0.6 + Math.random() * 1.8,
-        a: 0.1 + Math.random() * 0.28,
-        vx: (Math.random() - 0.5) * 0.12,
-        vy: -0.03 - Math.random() * 0.08,
-        phase: Math.random() * Math.PI * 2,
-        color
-      };
-    });
+  function seed() {
+    const count = field.width < 760 ? 30 : 52;
+    field.particles = Array.from({ length: count }, (_, i) => ({
+      x: Math.random() * field.width,
+      y: Math.random() * field.height,
+      r: 0.6 + Math.random() * 1.7,
+      a: 0.08 + Math.random() * 0.26,
+      vx: (Math.random() - 0.5) * 0.1,
+      vy: -0.03 - Math.random() * 0.07,
+      phase: Math.random() * Math.PI * 2,
+      color: fieldColors[i % fieldColors.length]
+    }));
   }
 
-  function paintRings(time) {
-    const cx = state.width * 0.5;
-    const cy = state.height * 0.48;
-    const base = Math.min(state.width, state.height);
-    const pulse = Math.sin(time * 0.00045) * 0.5 + 0.5;
-
-    ctx.save();
-    ctx.lineWidth = 1;
-    ctx.globalCompositeOperation = "lighter";
-
-    for (let i = 0; i < 4; i += 1) {
-      const radius = base * (0.23 + i * 0.12) + pulse * 8;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, radius * (1.06 + i * 0.03), radius * (0.66 + i * 0.02), time * 0.00008 + i * 0.42, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(185, 188, 224, ${0.035 - i * 0.004})`;
-      ctx.stroke();
-    }
-
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, base * 0.28, base * 0.18, -0.4, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(244, 236, 200, 0.08)";
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function paintParticles(time) {
+  function drawField(time) {
+    ctx.clearRect(0, 0, field.width, field.height);
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-
-    for (const particle of state.particles) {
+    for (const p of field.particles) {
       if (!reducedMotion) {
-        particle.x += particle.vx + Math.sin(time * 0.00035 + particle.phase) * 0.025;
-        particle.y += particle.vy;
-
-        if (particle.y < -12) particle.y = state.height + 12;
-        if (particle.x < -12) particle.x = state.width + 12;
-        if (particle.x > state.width + 12) particle.x = -12;
+        p.x += p.vx + Math.sin(time * 0.00035 + p.phase) * 0.022;
+        p.y += p.vy;
+        if (p.y < -12) p.y = field.height + 12;
+        if (p.x < -12) p.x = field.width + 12;
+        if (p.x > field.width + 12) p.x = -12;
       }
-
-      const shimmer = reducedMotion ? 0.7 : 0.62 + Math.sin(time * 0.0012 + particle.phase) * 0.26;
-      const [r, g, b] = particle.color;
+      const shimmer = reducedMotion ? 0.7 : 0.6 + Math.sin(time * 0.0012 + p.phase) * 0.26;
+      const [r, g, b] = p.color;
       ctx.beginPath();
-      ctx.arc(particle.x, particle.y, particle.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${Math.max(0.02, particle.a * shimmer)})`;
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${Math.max(0.02, p.a * shimmer)})`;
       ctx.fill();
     }
-
     ctx.restore();
-  }
-
-  function draw(time) {
-    ctx.clearRect(0, 0, state.width, state.height);
-    paintRings(time);
-    paintParticles(time);
   }
 
   function tick(time) {
-    if (!state.visible) return;
-    draw(time);
-    state.raf = window.requestAnimationFrame(tick);
+    if (!field.visible) return;
+    drawField(time);
+    field.raf = window.requestAnimationFrame(tick);
   }
 
-  function start() {
-    window.cancelAnimationFrame(state.raf);
-    state.visible = true;
-
+  function startField() {
+    window.cancelAnimationFrame(field.raf);
+    field.visible = true;
     if (!reducedMotion) {
-      state.raf = window.requestAnimationFrame(tick);
+      field.raf = window.requestAnimationFrame(tick);
     } else {
-      draw(0);
+      drawField(0);
     }
   }
 
-  function stop() {
-    state.visible = false;
-    window.cancelAnimationFrame(state.raf);
-  }
-
-  const rows = Array.from(document.querySelectorAll(".member-row"));
-
-  function startTitleRotation() {
-    if (reducedMotion || !titleLonging || !titleTeam) return;
-
-    let showTeam = false;
-    window.setInterval(() => {
-      showTeam = !showTeam;
-      document.body.classList.toggle("is-title-alt", showTeam);
-      titleLonging.setAttribute("aria-hidden", showTeam ? "true" : "false");
-      titleTeam.setAttribute("aria-hidden", showTeam ? "false" : "true");
-    }, 5200);
-  }
-
-  if ("IntersectionObserver" in window) {
-    const observer = new IntersectionObserver((entries) => {
-      let batchIndex = 0;
-
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          entry.target.style.setProperty("--reveal-delay", `${batchIndex * 120}ms`);
-          entry.target.classList.add("is-visible");
-          observer.unobserve(entry.target);
-          batchIndex += 1;
-        }
-      }
-    }, { threshold: 0.28 });
-
-    rows.forEach((row) => observer.observe(row));
-  } else {
-    rows.forEach((row) => row.classList.add("is-visible"));
+  function stopField() {
+    field.visible = false;
+    window.cancelAnimationFrame(field.raf);
   }
 
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      stop();
-    } else {
-      start();
-    }
+    if (document.hidden) stopField();
+    else startField();
   });
 
-  window.addEventListener("resize", resize, { passive: true });
+  window.addEventListener("resize", () => {
+    resize();
+    alignDeck();
+  }, { passive: true });
+
+  /* ---------- 启动 ---------- */
   resize();
-  start();
-  window.setTimeout(startTitleRotation, 1800);
+  alignDeck();
+  startField();
+  runIntro();
 })();

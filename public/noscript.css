@@ -1,0 +1,10 @@
+/* 无 JS 兜底：跳过开场动画，直接呈现末态并展开 CS2。 */
+.stage .mark { transform: none !important; }
+.mark-tail { max-width: 8em; opacity: 1; }
+.deck, .deck-hint { opacity: 1; transform: none; }
+
+/* 面板直接展开（无抽卡揭示），只显示 CS2；其余分部保留 hidden。 */
+.reveal { display: none; }
+.panel { padding: 0 0 clamp(40px, 8vh, 96px); border-top: 1px solid var(--line); }
+.cat[data-cat="cs2"] { display: block !important; }
+.scroll-plane { display: none; }
