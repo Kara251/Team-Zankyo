@@ -6,18 +6,16 @@
 
   const stage = document.getElementById("stage");
   const markCore = document.getElementById("mark-core");
+  const markTail = document.getElementById("mark-tail");
   const deck = document.getElementById("deck");
   const panel = document.getElementById("panel");
-  const reveal = document.getElementById("reveal");
-  const revealIndex = document.getElementById("reveal-index");
-  const revealName = document.getElementById("reveal-name");
   const cards = Array.from(document.querySelectorAll(".card"));
   const cats = Array.from(document.querySelectorAll(".cat"));
 
   const MYGO = ["--m1", "--m2", "--m3", "--m4", "--m5", "--m6"];
 
   /* ---------- 开场动画 ---------- */
-  // 逐字拆分，供信号干扰时随机泼色
+  // 逐字拆分，供信号干扰随机泼色
   const letters = [];
   if (markCore) {
     const text = markCore.textContent;
@@ -31,20 +29,32 @@
     }
   }
 
-  let splashTimer = 0;
+  // 量出 " of Longing" 的真实像素宽，揭示时用精确值，绝不截断
+  let tailWidth = 0;
+  function measureTail() {
+    if (!markTail) return;
+    const prev = markTail.style.maxWidth;
+    markTail.style.transition = "none";
+    markTail.style.maxWidth = "none";
+    tailWidth = Math.ceil(markTail.getBoundingClientRect().width) + 2;
+    markTail.style.maxWidth = prev || "0px";
+    // 强制回流后恢复过渡
+    void markTail.offsetWidth;
+    markTail.style.transition = "";
+  }
 
+  let splashTimer = 0;
   function splashOnce() {
     for (const lt of letters) {
-      if (Math.random() < 0.55) {
+      if (Math.random() < 0.5) {
         lt.style.color = `var(${MYGO[(Math.random() * MYGO.length) | 0]})`;
-        lt.style.transform = `translateY(${(Math.random() - 0.5) * 6}px)`;
+        lt.style.transform = `translateY(${(Math.random() - 0.5) * 7}px)`;
       } else {
         lt.style.color = "";
         lt.style.transform = "";
       }
     }
   }
-
   function clearSplash() {
     window.clearInterval(splashTimer);
     for (const lt of letters) {
@@ -53,39 +63,52 @@
     }
   }
 
-  function lit() {
-    document.body.classList.add("is-lit");
+  function revealTail() {
+    if (markTail) markTail.style.maxWidth = tailWidth ? `${tailWidth}px` : "12em";
   }
 
+  function lit() { document.body.classList.add("is-lit"); }
+
   function runIntro() {
+    measureTail();
+
     if (reducedMotion || !stage) {
       if (stage) stage.dataset.phase = "ready";
+      revealTail();
       lit();
       return;
     }
 
-    const timeline = [
-      [700, "glitch"],   // 淡入结束 → 进入干扰
-      [2200, "complete"], // 干扰约 1.5s → 补全文本
-      [3150, "settle"],   // 缩小上移落位
-      [4150, "ready"]     // 交互就绪
-    ];
+    // 时间线经过铺排：每段过渡结束后再进下一段，保证连贯丝滑
+    const at = {
+      glitch: 850,     // 淡入结束 → 干扰
+      complete: 2350,  // 干扰约 1.5s → 缩小一档并补全文本
+      settle: 3650,    // 补全过渡结束后 → 缩小上移落位
+      ready: 4900
+    };
 
-    for (const [at, phase] of timeline) {
-      window.setTimeout(() => {
-        stage.dataset.phase = phase;
-        if (phase === "glitch") {
-          splashTimer = window.setInterval(splashOnce, 82);
-        } else if (phase === "complete") {
-          clearSplash();
-        } else if (phase === "settle") {
-          lit();
-        }
-      }, at);
-    }
+    window.setTimeout(() => {
+      stage.dataset.phase = "glitch";
+      splashTimer = window.setInterval(splashOnce, 80);
+    }, at.glitch);
+
+    window.setTimeout(() => {
+      clearSplash();
+      stage.dataset.phase = "complete";
+      revealTail();
+    }, at.complete);
+
+    window.setTimeout(() => {
+      stage.dataset.phase = "settle";
+      lit();
+    }, at.settle);
+
+    window.setTimeout(() => {
+      stage.dataset.phase = "ready";
+    }, at.ready);
   }
 
-  /* ---------- 卡片选择 + 信封揭示 ---------- */
+  /* ---------- 卡片选择 ---------- */
   let current = null;
 
   function select(cat, card) {
@@ -96,43 +119,26 @@
       c.setAttribute("aria-pressed", c === card ? "true" : "false");
     }
 
-    for (const el of cats) {
-      el.hidden = el.dataset.cat !== cat;
-    }
+    const host = cats.find((el) => el.dataset.cat === cat);
+    for (const el of cats) el.hidden = el.dataset.cat !== cat;
 
-    if (revealIndex && card) {
-      const idx = card.querySelector(".card-index");
-      const name = card.querySelector(".card-name");
-      revealIndex.textContent = idx ? idx.textContent : "";
-      revealName.textContent = name ? name.textContent : "";
-    }
-
-    stage.classList.add("has-selection");
-    panel.classList.add("is-open");
-    reveal.setAttribute("aria-hidden", "false");
-
-    // 重启抽卡动画
-    if (!reducedMotion) {
-      reveal.classList.remove("is-open");
-      void reveal.offsetWidth;
-      reveal.classList.add("is-open");
+    if (host) {
+      panel.classList.add("is-open");
+      stage.classList.add("has-selection");
+      revealRows(host);
     } else {
-      reveal.classList.add("is-open");
+      // 该分部尚无内容：只高亮卡片，不展开空面板
+      panel.classList.remove("is-open");
+      stage.classList.remove("has-selection");
     }
-
-    revealRows(cat);
   }
 
   let dragMoved = false;
 
   for (const card of cards) {
     card.addEventListener("click", (e) => {
-      // 键盘激活（Enter/Space）detail 为 0，始终选中
-      if (e.detail === 0) {
-        select(card.dataset.cat, card);
-        return;
-      }
-      if (dragMoved) return; // 鼠标拖动误触保护
+      if (e.detail === 0) { select(card.dataset.cat, card); return; } // 键盘激活
+      if (dragMoved) return;
       select(card.dataset.cat, card);
     });
   }
@@ -169,11 +175,6 @@
   deck.addEventListener("pointercancel", endDrag);
   deck.addEventListener("pointerleave", endDrag);
 
-  // 载入/改尺寸后，把卡组滚到最右，让 CS2（01）优先出现（从右到左）
-  function alignDeck() {
-    deck.scrollLeft = deck.scrollWidth - deck.clientWidth;
-  }
-
   /* ---------- 成员行渐显 ---------- */
   let rowObserver = null;
   if ("IntersectionObserver" in window) {
@@ -190,15 +191,10 @@
     }, { threshold: 0.25 });
   }
 
-  function revealRows(cat) {
-    const host = cats.find((el) => el.dataset.cat === cat);
-    if (!host) return;
+  function revealRows(host) {
     const rows = Array.from(host.querySelectorAll(".member-row"));
-    if (rowObserver) {
-      rows.forEach((row) => rowObserver.observe(row));
-    } else {
-      rows.forEach((row) => row.classList.add("is-visible"));
-    }
+    if (rowObserver) rows.forEach((row) => rowObserver.observe(row));
+    else rows.forEach((row) => row.classList.add("is-visible"));
   }
 
   /* ---------- 环境粒子场 ---------- */
@@ -270,11 +266,8 @@
   function startField() {
     window.cancelAnimationFrame(field.raf);
     field.visible = true;
-    if (!reducedMotion) {
-      field.raf = window.requestAnimationFrame(tick);
-    } else {
-      drawField(0);
-    }
+    if (!reducedMotion) field.raf = window.requestAnimationFrame(tick);
+    else drawField(0);
   }
 
   function stopField() {
@@ -287,14 +280,10 @@
     else startField();
   });
 
-  window.addEventListener("resize", () => {
-    resize();
-    alignDeck();
-  }, { passive: true });
+  window.addEventListener("resize", resize, { passive: true });
 
   /* ---------- 启动 ---------- */
   resize();
-  alignDeck();
   startField();
   runIntro();
 })();

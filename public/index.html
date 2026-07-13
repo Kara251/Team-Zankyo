@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Z.A.N.K.Y.O. of Longing</title>
-    <meta name="description" content="Where All Miracles Begin. Z.A.N.K.Y.O. of Longing — the Solo Club of Kara251.">
+    <meta name="description" content="Where All Miracles Begin. Z.A.N.K.Y.O. of Longing.">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <meta name="author" content="Kara251">
     <meta name="theme-color" content="#000000">
@@ -31,55 +31,35 @@
     </div>
 
     <main class="site-main">
-      <!-- 首屏：开场标题 + 卡组 + 提示 -->
       <section class="stage" id="stage" data-phase="in" aria-label="Zankyo">
         <h1 class="mark" id="mark" aria-label="Z.A.N.K.Y.O. of Longing">
-          <span class="mark-core" id="mark-core" aria-hidden="true">Z.A.N.K.Y.O.</span><span class="mark-tail" aria-hidden="true"> of Longing</span>
+          <span class="mark-core" id="mark-core" aria-hidden="true">Z.A.N.K.Y.O.</span><span class="mark-tail" id="mark-tail" aria-hidden="true"> of Longing</span>
         </h1>
 
-        <nav class="deck" id="deck" aria-label="Divisions of Zankyo">
-          <!-- 视觉从右到左：CS2(01) 在最右、载入时优先出现；DOM 用 LTR 顺序以便滚动定位确定 -->
+        <nav class="deck" id="deck" aria-label="Divisions">
           <ul class="deck-track" id="deck-track">
             <li class="deck-item">
-              <button type="button" class="card" data-cat="art" aria-pressed="false" aria-controls="panel">
-                <span class="card-face">
-                  <span class="card-index">04</span>
-                  <span class="card-name">Art</span>
-                  <span class="card-tag">画 / ART</span>
-                </span>
-              </button>
-            </li>
-            <li class="deck-item">
-              <button type="button" class="card" data-cat="literature" aria-pressed="false" aria-controls="panel">
-                <span class="card-face">
-                  <span class="card-index">03</span>
-                  <span class="card-name">Literature</span>
-                  <span class="card-tag">文 / LETTERS</span>
-                </span>
+              <button type="button" class="card" data-cat="cs2" aria-pressed="false" aria-controls="panel">
+                <span class="card-face"><span class="card-name">CS2</span></span>
               </button>
             </li>
             <li class="deck-item">
               <button type="button" class="card" data-cat="sound" aria-pressed="false" aria-controls="panel">
-                <span class="card-face">
-                  <span class="card-index">02</span>
-                  <span class="card-name">Sound</span>
-                  <span class="card-tag">音 / SOUND</span>
-                </span>
+                <span class="card-face"><span class="card-name">Sound</span></span>
               </button>
             </li>
             <li class="deck-item">
-              <button type="button" class="card" data-cat="cs2" aria-pressed="false" aria-controls="panel">
-                <span class="card-face">
-                  <span class="card-index">01</span>
-                  <span class="card-name">CS2</span>
-                  <span class="card-tag">TACTICAL</span>
-                </span>
+              <button type="button" class="card" data-cat="literature" aria-pressed="false" aria-controls="panel">
+                <span class="card-face"><span class="card-name">Literature</span></span>
+              </button>
+            </li>
+            <li class="deck-item">
+              <button type="button" class="card" data-cat="art" aria-pressed="false" aria-controls="panel">
+                <span class="card-face"><span class="card-name">Art</span></span>
               </button>
             </li>
           </ul>
         </nav>
-
-        <p class="deck-hint" aria-hidden="true">DRAG · 选择一个分部</p>
 
         <div class="scroll-plane" id="scroll-plane" aria-hidden="true">
           <span></span>
@@ -88,20 +68,7 @@
         </div>
       </section>
 
-      <!-- 展开区：选中卡片后揭示 -->
       <section class="panel" id="panel" aria-live="polite">
-        <!-- 信封抽卡揭示 -->
-        <div class="reveal" id="reveal" aria-hidden="true">
-          <div class="reveal-card" id="reveal-card">
-            <span class="reveal-art" id="reveal-art" aria-hidden="true"></span>
-            <span class="reveal-meta">
-              <span class="reveal-index" id="reveal-index"></span>
-              <span class="reveal-name" id="reveal-name"></span>
-            </span>
-          </div>
-        </div>
-
-        <!-- 各分部内容：默认隐藏，选中后显示对应一项 -->
         <div class="cat" data-cat="cs2" hidden>
           <ol class="member-list">
             <li class="member-row">
@@ -138,33 +105,12 @@
             </li>
           </ol>
         </div>
-
-        <div class="cat cat-coming" data-cat="sound" hidden>
-          <p class="coming-line">尚未开幕</p>
-          <p class="coming-sub">SOUND — NOT YET OPEN</p>
-        </div>
-
-        <div class="cat cat-coming" data-cat="literature" hidden>
-          <p class="coming-line">尚未开幕</p>
-          <p class="coming-sub">LITERATURE — NOT YET OPEN</p>
-        </div>
-
-        <div class="cat cat-coming" data-cat="art" hidden>
-          <p class="coming-line">尚未开幕</p>
-          <p class="coming-sub">ART — NOT YET OPEN</p>
-        </div>
       </section>
     </main>
 
     <footer class="site-foot">
-      <!-- TODO(Kara251): 这段是 Zankyo 实质 + Kara251 信息的占位，待你定稿替换 -->
-      <p class="foot-lead">
-        Z.A.N.K.Y.O. — a non-profit Solo Club by Kara251, in homage to Team Shanghai Alice.
-      </p>
-      <div class="foot-credit">
-        <p>Design by Trinity</p>
-        <p>Powered &amp; Computing power supported by Millennium</p>
-      </div>
+      <p>Design by Trinity</p>
+      <p>Powered &amp; Computing power supported by Millennium</p>
     </footer>
 
     <script src="/site.js" defer></script>
