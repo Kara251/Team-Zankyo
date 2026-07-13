@@ -80,6 +80,17 @@ body.is-lit::before { opacity: 1; }
 
 body.is-lit .field { opacity: 1; }
 
+/* 颜料泼溅层：开场爆发，随后化开淡出 */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+}
+
 /* ---- 四边细框 ---- */
 .frame-lines {
   position: fixed;
@@ -136,7 +147,7 @@ body.is-lit .field { opacity: 1; }
 
 .mark-core .lt {
   display: inline-block;
-  transition: color 110ms linear, transform 110ms var(--ease-quick);
+  transition: color 480ms var(--ease-settle), transform 520ms var(--ease-settle);
 }
 
 /* of Longing：靠 JS 量出的精确像素宽揭示，绝不截断 */
@@ -156,8 +167,8 @@ body.is-lit .field { opacity: 1; }
 
 .stage[data-phase="in"] .mark { animation: mark-in 900ms var(--ease-settle) both; }
 
-/* 阶段：信号干扰 —— 只动色差与逐字颜色，不动整体位移，保证退出丝滑 */
-.stage[data-phase="glitch"] .mark-core { animation: sig 96ms steps(1, end) infinite; }
+/* 阶段：颜料泼溅（泼溅由 JS 在 canvas 上绘制；标题随之轻微震动） */
+.stage[data-phase="glitch"] .mark-core { animation: shake 520ms var(--ease-quick) 2; }
 
 /* 阶段：补全（缩小一档、露出 of Longing） */
 .stage[data-phase="complete"] .mark { transform: translateY(30vh) scale(1.5); }
@@ -175,15 +186,12 @@ body.is-lit .field { opacity: 1; }
   to { opacity: 1; filter: blur(0); }
 }
 
-@keyframes sig {
-  0% { transform: translateX(0); opacity: 1; text-shadow: 4px 0 var(--m3), -4px 0 var(--m2); }
-  14% { transform: translateX(-6px); opacity: 0.86; text-shadow: -6px 0 var(--m5), 5px 0 var(--m1); }
-  28% { transform: translateX(5px) skewX(1.1deg); opacity: 1; text-shadow: 6px 0 var(--m4), -5px 0 var(--m6); }
-  42% { transform: translateX(-4px); opacity: 0.92; text-shadow: -4px 0 var(--m2), 6px 0 var(--m3); }
-  56% { transform: translateX(6px) skewX(-1.1deg); opacity: 1; text-shadow: 5px 0 var(--m1), -6px 0 var(--m5); }
-  70% { transform: translateX(-5px); opacity: 0.88; text-shadow: -5px 0 var(--m6), 4px 0 var(--m4); }
-  84% { transform: translateX(3px); opacity: 1; text-shadow: 4px 0 var(--m3), -4px 0 var(--m2); }
-  100% { transform: translateX(0); opacity: 1; text-shadow: 2px 0 var(--m2), -2px 0 var(--m3); }
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -1px); }
+  60% { transform: translate(-2px, -2px); }
+  80% { transform: translate(2px, 1px); }
 }
 
 /* ---- 卡组（可拖拽平行四边形条；CS2 在最左，从左到右） ---- */

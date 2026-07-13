@@ -13,9 +13,13 @@
   const cats = Array.from(document.querySelectorAll(".cat"));
 
   const MYGO = ["--m1", "--m2", "--m3", "--m4", "--m5", "--m6"];
+  const MYGO_RGB = [
+    [51, 136, 187], [119, 187, 221], [255, 136, 153],
+    [119, 221, 119], [255, 187, 18], [119, 119, 170]
+  ];
 
   /* ---------- 开场动画 ---------- */
-  // 逐字拆分，供信号干扰随机泼色
+  // 逐字拆分，颜料泼溅时给字染色
   const letters = [];
   if (markCore) {
     const text = markCore.textContent;
@@ -38,29 +42,159 @@
     markTail.style.maxWidth = "none";
     tailWidth = Math.ceil(markTail.getBoundingClientRect().width) + 2;
     markTail.style.maxWidth = prev || "0px";
-    // 强制回流后恢复过渡
     void markTail.offsetWidth;
     markTail.style.transition = "";
   }
 
-  let splashTimer = 0;
-  function splashOnce() {
+  // 给部分字母染上 MyGO 颜料色（补全时化开回白）
+  function paintLetters() {
     for (const lt of letters) {
-      if (Math.random() < 0.5) {
+      if (Math.random() < 0.62) {
         lt.style.color = `var(${MYGO[(Math.random() * MYGO.length) | 0]})`;
-        lt.style.transform = `translateY(${(Math.random() - 0.5) * 7}px)`;
-      } else {
-        lt.style.color = "";
-        lt.style.transform = "";
+        lt.style.transform =
+          `translateY(${(Math.random() - 0.5) * 8}px) rotate(${(Math.random() - 0.5) * 4}deg)`;
       }
     }
   }
-  function clearSplash() {
-    window.clearInterval(splashTimer);
-    for (const lt of letters) {
-      lt.style.color = "";
-      lt.style.transform = "";
+  function washLetters() {
+    for (const lt of letters) { lt.style.color = ""; lt.style.transform = ""; }
+  }
+
+  /* ---------- 颜料泼溅（canvas 绘制有机泼溅） ---------- */
+  const splash = document.getElementById("splash");
+  const spctx = splash.getContext("2d");
+  const sp = { dpr: 1, w: 0, h: 0, splats: [], raf: 0, start: 0 };
+  const BURST_MS = 1500; // 爆发
+  const WASH_MS = 900;   // 化开淡出
+
+  function sizeSplash() {
+    sp.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    sp.w = Math.max(1, window.innerWidth);
+    sp.h = Math.max(1, window.innerHeight);
+    splash.width = Math.floor(sp.w * sp.dpr);
+    splash.height = Math.floor(sp.h * sp.dpr);
+    splash.style.width = `${sp.w}px`;
+    splash.style.height = `${sp.h}px`;
+  }
+
+  function buildSplats() {
+    const cx = sp.w * 0.5, cy = sp.h * 0.42;
+    const reach = Math.min(sp.w, sp.h);
+    const n = sp.w < 760 ? 20 : 34;
+    const base = sp.w < 760 ? 11 : 17;
+    const list = [];
+    for (let i = 0; i < n; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const dist = Math.pow(Math.random(), 0.62) * reach * 0.52;
+      const r = base * (0.5 + Math.random() * 1.7);
+      const lobes = 7 + ((Math.random() * 6) | 0);
+      list.push({
+        x: cx + Math.cos(ang) * dist * 1.5,
+        y: cy + Math.sin(ang) * dist * 0.82,
+        r,
+        color: MYGO_RGB[(Math.random() * MYGO_RGB.length) | 0],
+        rot: Math.random() * Math.PI,
+        birth: Math.random() * 0.72,
+        radii: Array.from({ length: lobes }, () => 0.5 + Math.random() * 0.75),
+        drops: Array.from({ length: 3 + ((Math.random() * 6) | 0) }, () => ({
+          dx: (Math.random() - 0.5) * r * 4.2,
+          dy: (Math.random() - 0.5) * r * 4.2,
+          dr: r * (0.07 + Math.random() * 0.24)
+        })),
+        drips: Math.random() < 0.5
+          ? Array.from({ length: 1 + ((Math.random() * 2) | 0) }, () => ({
+              dx: (Math.random() - 0.5) * r * 0.7,
+              len: r * (1.1 + Math.random() * 2.6),
+              w: r * (0.1 + Math.random() * 0.18)
+            }))
+          : []
+      });
     }
+    sp.splats = list;
+  }
+
+  function backOut(t) {
+    if (t <= 0) return 0;
+    if (t >= 1) return 1;
+    const s = 2.4;
+    const u = t - 1;
+    return 1 + u * u * ((s + 1) * u + s);
+  }
+
+  function drawSplat(s, grow, alpha) {
+    spctx.save();
+    spctx.globalAlpha = alpha * 0.92;
+    spctx.translate(s.x, s.y);
+    spctx.rotate(s.rot);
+    spctx.scale(grow, grow);
+    spctx.fillStyle = `rgb(${s.color[0]}, ${s.color[1]}, ${s.color[2]})`;
+
+    // 主体：贝塞尔平滑的有机团块
+    const L = s.radii.length;
+    const pts = [];
+    for (let i = 0; i < L; i++) {
+      const a = (i / L) * Math.PI * 2;
+      const rr = s.r * s.radii[i];
+      pts.push([Math.cos(a) * rr, Math.sin(a) * rr]);
+    }
+    spctx.beginPath();
+    spctx.moveTo((pts[L - 1][0] + pts[0][0]) / 2, (pts[L - 1][1] + pts[0][1]) / 2);
+    for (let i = 0; i < L; i++) {
+      const cur = pts[i], nxt = pts[(i + 1) % L];
+      spctx.quadraticCurveTo(cur[0], cur[1], (cur[0] + nxt[0]) / 2, (cur[1] + nxt[1]) / 2);
+    }
+    spctx.closePath();
+    spctx.fill();
+
+    for (const d of s.drops) {
+      spctx.beginPath();
+      spctx.arc(d.dx, d.dy, d.dr, 0, Math.PI * 2);
+      spctx.fill();
+    }
+    for (const dp of s.drips) {
+      spctx.beginPath();
+      spctx.ellipse(dp.dx, dp.len * 0.5, dp.w, dp.len * 0.5, 0, 0, Math.PI * 2);
+      spctx.fill();
+    }
+    spctx.restore();
+  }
+
+  function renderSplash(prog, alpha) {
+    spctx.setTransform(sp.dpr, 0, 0, sp.dpr, 0, 0);
+    spctx.clearRect(0, 0, sp.w, sp.h);
+    for (const s of sp.splats) {
+      const lp = (prog - s.birth) / 0.26;
+      if (lp <= 0) continue;
+      drawSplat(s, backOut(Math.min(lp, 1)), alpha * Math.min(lp, 1));
+    }
+  }
+
+  function clearSplash() {
+    spctx.setTransform(sp.dpr, 0, 0, sp.dpr, 0, 0);
+    spctx.clearRect(0, 0, sp.w, sp.h);
+    splash.style.opacity = "0";
+  }
+
+  function runSplash() {
+    sizeSplash();
+    buildSplats();
+    splash.style.opacity = "1";
+    sp.start = performance.now();
+    const step = (now) => {
+      const t = now - sp.start;
+      if (t <= BURST_MS) {
+        renderSplash(t / BURST_MS, 1);
+        sp.raf = window.requestAnimationFrame(step);
+      } else if (t <= BURST_MS + WASH_MS) {
+        const wash = 1 - (t - BURST_MS) / WASH_MS;
+        renderSplash(1, wash);
+        splash.style.opacity = String(wash);
+        sp.raf = window.requestAnimationFrame(step);
+      } else {
+        clearSplash();
+      }
+    };
+    sp.raf = window.requestAnimationFrame(step);
   }
 
   function revealTail() {
@@ -79,21 +213,16 @@
       return;
     }
 
-    // 时间线经过铺排：每段过渡结束后再进下一段，保证连贯丝滑
-    const at = {
-      glitch: 850,     // 淡入结束 → 干扰
-      complete: 2350,  // 干扰约 1.5s → 缩小一档并补全文本
-      settle: 3650,    // 补全过渡结束后 → 缩小上移落位
-      ready: 4900
-    };
+    const at = { glitch: 850, complete: 2350, settle: 3650, ready: 4900 };
 
     window.setTimeout(() => {
       stage.dataset.phase = "glitch";
-      splashTimer = window.setInterval(splashOnce, 80);
+      paintLetters();
+      runSplash();
     }, at.glitch);
 
     window.setTimeout(() => {
-      clearSplash();
+      washLetters();
       stage.dataset.phase = "complete";
       revealTail();
     }, at.complete);
