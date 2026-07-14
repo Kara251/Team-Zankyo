@@ -5,10 +5,13 @@
   document.documentElement.classList.remove("no-js");
 
   const stage = document.getElementById("stage");
+  const mark = document.getElementById("mark");
   const markCore = document.getElementById("mark-core");
   const markTail = document.getElementById("mark-tail");
   const deck = document.getElementById("deck");
   const panel = document.getElementById("panel");
+  const reveal = document.getElementById("reveal");
+  const revealName = document.getElementById("reveal-name");
   const cards = Array.from(document.querySelectorAll(".card"));
   const cats = Array.from(document.querySelectorAll(".cat"));
 
@@ -33,30 +36,36 @@
     }
   }
 
-  // 量出 " of Longing" 的真实像素宽，揭示时用精确值，绝不截断
-  let tailWidth = 0;
-  function measureTail() {
-    if (!markTail) return;
-    const prev = markTail.style.maxWidth;
-    markTail.style.transition = "none";
-    markTail.style.maxWidth = "none";
-    tailWidth = Math.ceil(markTail.getBoundingClientRect().width) + 2;
-    markTail.style.maxWidth = prev || "0px";
-    void markTail.offsetWidth;
-    markTail.style.transition = "";
+  // 标题全程只动 transform：按视口实测钳制缩放，任何屏宽都不裁字；
+  // 前段用 --tailw 补偿平移，让 Z.A.N.K.Y.O. 单独居中
+  function computeMarkScales() {
+    if (!mark || !markCore || !markTail) return;
+    const coreW = markCore.offsetWidth || 1;
+    const tailW = markTail.offsetWidth || 0;
+    const avail = window.innerWidth * 0.92;
+    const sBig = Math.max(1, Math.min(2.3, avail / coreW));
+    const sMid = Math.max(1, Math.min(1.5, avail / (coreW + tailW)));
+    mark.style.setProperty("--tailw", `${tailW}px`);
+    mark.style.setProperty("--s-big", String(sBig));
+    mark.style.setProperty("--s-mid", String(sMid));
   }
 
-  // 给部分字母染上 MyGO 颜料色（补全时化开回白）
+  // 颜料错峰命中：字母在爆发期内先后被泼上 MyGO 色（补全时化开回白）
+  const stainTimers = [];
   function paintLetters() {
     for (const lt of letters) {
-      if (Math.random() < 0.62) {
-        lt.style.color = `var(${MYGO[(Math.random() * MYGO.length) | 0]})`;
-        lt.style.transform =
-          `translateY(${(Math.random() - 0.5) * 8}px) rotate(${(Math.random() - 0.5) * 4}deg)`;
+      if (Math.random() < 0.68) {
+        stainTimers.push(window.setTimeout(() => {
+          lt.style.color = `var(${MYGO[(Math.random() * MYGO.length) | 0]})`;
+          lt.style.transform =
+            `translateY(${(Math.random() - 0.5) * 8}px) rotate(${(Math.random() - 0.5) * 4}deg)`;
+        }, Math.random() * 1000));
       }
     }
   }
   function washLetters() {
+    for (const t of stainTimers) window.clearTimeout(t);
+    stainTimers.length = 0;
     for (const lt of letters) { lt.style.color = ""; lt.style.transform = ""; }
   }
 
@@ -77,20 +86,18 @@
     splash.style.height = `${sp.h}px`;
   }
 
-  function buildSplats() {
-    const cx = sp.w * 0.5, cy = sp.h * 0.42;
-    const reach = Math.min(sp.w, sp.h);
+  function buildSplats(cx, cy, rx, ry) {
     const n = sp.w < 760 ? 20 : 34;
     const base = sp.w < 760 ? 11 : 17;
     const list = [];
     for (let i = 0; i < n; i++) {
       const ang = Math.random() * Math.PI * 2;
-      const dist = Math.pow(Math.random(), 0.62) * reach * 0.52;
+      const dist = Math.pow(Math.random(), 0.62);
       const r = base * (0.5 + Math.random() * 1.7);
       const lobes = 7 + ((Math.random() * 6) | 0);
       list.push({
-        x: cx + Math.cos(ang) * dist * 1.5,
-        y: cy + Math.sin(ang) * dist * 0.82,
+        x: cx + Math.cos(ang) * dist * rx,
+        y: cy + Math.sin(ang) * dist * ry,
         r,
         color: MYGO_RGB[(Math.random() * MYGO_RGB.length) | 0],
         rot: Math.random() * Math.PI,
@@ -177,7 +184,15 @@
 
   function runSplash() {
     sizeSplash();
-    buildSplats();
+    // 爆心锁定标题实际位置：颜料泼在字上，而不是屏幕背景上
+    const rc = markCore.getBoundingClientRect();
+    const reach = Math.min(sp.w, sp.h);
+    buildSplats(
+      rc.left + rc.width / 2,
+      rc.top + rc.height / 2,
+      Math.max(rc.width * 0.58, reach * 0.3),
+      reach * 0.27
+    );
     splash.style.opacity = "1";
     sp.start = performance.now();
     const step = (now) => {
@@ -197,18 +212,13 @@
     sp.raf = window.requestAnimationFrame(step);
   }
 
-  function revealTail() {
-    if (markTail) markTail.style.maxWidth = tailWidth ? `${tailWidth}px` : "12em";
-  }
-
   function lit() { document.body.classList.add("is-lit"); }
 
   function runIntro() {
-    measureTail();
+    computeMarkScales();
 
     if (reducedMotion || !stage) {
       if (stage) stage.dataset.phase = "ready";
-      revealTail();
       lit();
       return;
     }
@@ -224,7 +234,6 @@
     window.setTimeout(() => {
       washLetters();
       stage.dataset.phase = "complete";
-      revealTail();
     }, at.complete);
 
     window.setTimeout(() => {
@@ -237,7 +246,7 @@
     }, at.ready);
   }
 
-  /* ---------- 卡片选择 ---------- */
+  /* ---------- 卡片选择：抽出信封里的分部卡，页面向下展开 ---------- */
   let current = null;
 
   function select(cat, card) {
@@ -248,18 +257,24 @@
       c.setAttribute("aria-pressed", c === card ? "true" : "false");
     }
 
+    panel.dataset.cat = cat;
+    const nameEl = card.querySelector(".card-name");
+    if (revealName) revealName.textContent = nameEl ? nameEl.textContent : "";
+
     const host = cats.find((el) => el.dataset.cat === cat);
     for (const el of cats) el.hidden = el.dataset.cat !== cat;
 
-    if (host) {
-      panel.classList.add("is-open");
-      stage.classList.add("has-selection");
-      revealRows(host);
-    } else {
-      // 该分部尚无内容：只高亮卡片，不展开空面板
-      panel.classList.remove("is-open");
-      stage.classList.remove("has-selection");
+    panel.classList.add("is-open");
+    stage.classList.add("has-selection");
+
+    // 重放抽卡动效（从左到右抽出）
+    if (reveal) {
+      reveal.classList.remove("is-pulled");
+      void reveal.offsetWidth;
+      reveal.classList.add("is-pulled");
     }
+
+    if (host) revealRows(host);
   }
 
   let dragMoved = false;
@@ -409,7 +424,10 @@
     else startField();
   });
 
-  window.addEventListener("resize", resize, { passive: true });
+  window.addEventListener("resize", () => {
+    resize();
+    computeMarkScales();
+  }, { passive: true });
 
   /* ---------- 启动 ---------- */
   resize();
